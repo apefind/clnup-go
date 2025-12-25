@@ -1,0 +1,15 @@
+# clnup
+
+`clnup` removes files and directories from a directory tree based on
+rules defined in `.clnup` files.
+
+The syntax is intentionally similar to `.gitignore`, but smaller and
+easier to implement.
+
+---
+
+## Basic usage
+
+```sh
+clnup [path]
+
