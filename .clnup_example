@@ -1,0 +1,54 @@
+
+# =========================
+# Advanced .clnup example
+# =========================
+
+# 1. Build output directories (delete all)
+build/
+dist/
+
+# 2. Temporary files anywhere
+*.tmp
+*.swp
+*.bak
+
+# 3. Node modules (directories only)
+node_modules/
+
+# 4. Logs (delete all logs, but keep important ones)
+*.log
+!important.log
+
+# 5. Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# 6. Editor files (global patterns)
+*.sublime-workspace
+*.vscode/
+*.idea/
+
+# 7. Coverage and test artifacts
+coverage/
+*.coverage
+*.pytest_cache/
+
+# 8. Documentation artifacts
+docs/_build/
+docs/*.aux
+docs/*.log
+
+# 9. Nested directories with exceptions
+**/temp/
+**/*.tmp
+!tests/**/temp/
+!tests/**/*.tmp
+
+# 10. Anchored patterns (relative to this .clnup file)
+# Only remove local `tmp/` in project root
+/tmp/
+
+# 11. Special cases
+# Keep all readme files even if they match patterns above
+!README.md
+!docs/**/*.md
