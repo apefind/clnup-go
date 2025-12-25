@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,7 +31,6 @@ func ParseRules(input string) ([]Rule, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-
 		r := Rule{}
 		if strings.HasPrefix(line, "!") {
 			r.Negated = true
@@ -68,12 +68,10 @@ func Evaluate(rel string, isDir bool, rules []Rule) Action {
 }
 
 func match(r Rule, rel string) bool {
-	rel = strings.ReplaceAll(rel, "\\", "/") // normalize
-
+	rel = strings.ReplaceAll(rel, "\\", "/")
 	if r.Anchored {
 		return globMatch(r.Pattern, rel)
 	}
-
 	parts := strings.Split(rel, "/")
 	for i := 0; i < len(parts); i++ {
 		sub := strings.Join(parts[i:], "/")
@@ -89,39 +87,22 @@ func globMatch(pattern, name string) bool {
 	return ok
 }
 
-// --- Generalized handler function ---
+// --- Generalized handler ---
 
 type HandlerFunc func(path string, isDir bool) error
 
-func walk(dir string, inherited []Rule, handler HandlerFunc) error {
-	rules := append([]Rule{}, inherited...)
-
-	clnupPath := filepath.Join(dir, ".clnup")
-	if data, err := os.ReadFile(clnupPath); err == nil {
-		parsed, err := ParseRules(string(data))
-		if err != nil {
-			return err
-		}
-		rules = append(rules, parsed...)
-	}
-
-	entries, err := os.ReadDir(dir)
+func walk(root string, rules []Rule, handler HandlerFunc) error {
+	entries, err := os.ReadDir(root)
 	if err != nil {
 		return err
 	}
 
 	for _, e := range entries {
 		name := e.Name()
-		if name == ".clnup" {
-			continue
-		}
-
-		full := filepath.Join(dir, name)
-		rel := name
+		full := filepath.Join(root, name)
 		isDir := e.IsDir()
 
-		decision := Evaluate(rel, isDir, rules)
-		if decision == Delete {
+		if Evaluate(name, isDir, rules) == Delete {
 			if err := handler(full, isDir); err != nil {
 				return err
 			}
@@ -134,19 +115,19 @@ func walk(dir string, inherited []Rule, handler HandlerFunc) error {
 			}
 		}
 	}
-
 	return nil
 }
 
 // --- Example handlers ---
 
-func deleteHandler(path string, isDir bool) error {
-	return os.RemoveAll(path)
-}
-
 func printHandler(path string, isDir bool) error {
 	fmt.Println(path)
 	return nil
+}
+
+func deleteHandler(path string, isDir bool) error {
+	fmt.Println("[delete]", path)
+	return os.RemoveAll(path)
 }
 
 func touchHandler(path string, isDir bool) error {
@@ -163,15 +144,43 @@ func touchHandler(path string, isDir bool) error {
 // --- main ---
 
 func main() {
-	root := "."
-	handler := printHandler // change to deleteHandler or touchHandler
+	clnupPath := flag.String("file", "", "Path to .clnup file (cleanup rules)")
+	action := flag.String("action", "print", "Handler action: print | delete | touch")
+	flag.Parse()
 
-	if len(os.Args) > 1 {
-		root = os.Args[1]
+	if *clnupPath == "" {
+		fmt.Println("Usage: clnup --file <.clnup> [--action=print|delete|touch]")
+		os.Exit(1)
 	}
 
-	if err := walk(root, nil, handler); err != nil {
-		fmt.Fprintln(os.Stderr, "clnup:", err)
+	data, err := os.ReadFile(*clnupPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to read .clnup file:", err)
+		os.Exit(1)
+	}
+
+	rules, err := ParseRules(string(data))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to parse .clnup:", err)
+		os.Exit(1)
+	}
+
+	var handler HandlerFunc
+	switch *action {
+	case "print":
+		handler = printHandler
+	case "delete":
+		handler = deleteHandler
+	case "touch":
+		handler = touchHandler
+	default:
+		fmt.Fprintln(os.Stderr, "Unknown action:", *action)
+		os.Exit(1)
+	}
+
+	root := filepath.Dir(*clnupPath)
+	if err := walk(root, rules, handler); err != nil {
+		fmt.Fprintln(os.Stderr, "Error walking directory:", err)
 		os.Exit(1)
 	}
 }
