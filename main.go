@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-// --- Rule types and matching logic ---
-
 type Action int
 
 const (
@@ -89,21 +87,19 @@ func globMatch(pattern, name string) bool {
 	return ok
 }
 
-// --- Main tree walk ---
+// --- removeAll function ---
 
-func main() {
-	root := "."
-	if len(os.Args) > 1 {
-		root = os.Args[1]
+func removeAll(path string, dryRun bool) error {
+	if dryRun {
+		fmt.Println("[dry-run] would remove:", path)
+		return nil
 	}
-
-	if err := walk(root, nil); err != nil {
-		fmt.Fprintln(os.Stderr, "clnup:", err)
-		os.Exit(1)
-	}
+	return os.RemoveAll(path)
 }
 
-func walk(dir string, inherited []Rule) error {
+// --- tree walk ---
+
+func walk(dir string, inherited []Rule, dryRun bool) error {
 	rules := append([]Rule{}, inherited...)
 
 	clnupPath := filepath.Join(dir, ".clnup")
@@ -131,18 +127,34 @@ func walk(dir string, inherited []Rule) error {
 
 		decision := Evaluate(rel, e.IsDir(), rules)
 		if decision == Delete {
-			if err := os.RemoveAll(full); err != nil {
+			if err := removeAll(full, dryRun); err != nil {
 				return err
 			}
 			continue
 		}
 
 		if e.IsDir() {
-			if err := walk(full, rules); err != nil {
+			if err := walk(full, rules, dryRun); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+// --- main ---
+
+func main() {
+	root := "."
+	dryRun := true // set false to actually delete
+
+	if len(os.Args) > 1 {
+		root = os.Args[1]
+	}
+
+	if err := walk(root, nil, dryRun); err != nil {
+		fmt.Fprintln(os.Stderr, "clnup:", err)
+		os.Exit(1)
+	}
 }
