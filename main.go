@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// --- Rule definitions ---
+
 type Action int
 
 const (
@@ -87,19 +89,11 @@ func globMatch(pattern, name string) bool {
 	return ok
 }
 
-// --- removeAll function ---
+// --- Generalized handler function ---
 
-func removeAll(path string, dryRun bool) error {
-	if dryRun {
-		fmt.Println("[dry-run] would remove:", path)
-		return nil
-	}
-	return os.RemoveAll(path)
-}
+type HandlerFunc func(path string, isDir bool) error
 
-// --- tree walk ---
-
-func walk(dir string, inherited []Rule, dryRun bool) error {
+func walk(dir string, inherited []Rule, handler HandlerFunc) error {
 	rules := append([]Rule{}, inherited...)
 
 	clnupPath := filepath.Join(dir, ".clnup")
@@ -124,17 +118,18 @@ func walk(dir string, inherited []Rule, dryRun bool) error {
 
 		full := filepath.Join(dir, name)
 		rel := name
+		isDir := e.IsDir()
 
-		decision := Evaluate(rel, e.IsDir(), rules)
+		decision := Evaluate(rel, isDir, rules)
 		if decision == Delete {
-			if err := removeAll(full, dryRun); err != nil {
+			if err := handler(full, isDir); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if e.IsDir() {
-			if err := walk(full, rules, dryRun); err != nil {
+		if isDir {
+			if err := walk(full, rules, handler); err != nil {
 				return err
 			}
 		}
@@ -143,17 +138,39 @@ func walk(dir string, inherited []Rule, dryRun bool) error {
 	return nil
 }
 
+// --- Example handlers ---
+
+func deleteHandler(path string, isDir bool) error {
+	return os.RemoveAll(path)
+}
+
+func printHandler(path string, isDir bool) error {
+	fmt.Println(path)
+	return nil
+}
+
+func touchHandler(path string, isDir bool) error {
+	if isDir {
+		return nil
+	}
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
+
 // --- main ---
 
 func main() {
 	root := "."
-	dryRun := true // set false to actually delete
+	handler := printHandler // change to deleteHandler or touchHandler
 
 	if len(os.Args) > 1 {
 		root = os.Args[1]
 	}
 
-	if err := walk(root, nil, dryRun); err != nil {
+	if err := walk(root, nil, handler); err != nil {
 		fmt.Fprintln(os.Stderr, "clnup:", err)
 		os.Exit(1)
 	}
