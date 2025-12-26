@@ -144,12 +144,12 @@ func touchHandler(path string, isDir bool) error {
 // --- main ---
 
 func main() {
-	clnupPath := flag.String("file", "", "Path to .clnup file (cleanup rules)")
+	clnupPath := flag.String("file", ".clnup", "Path to .clnup file (cleanup rules)")
 	action := flag.String("action", "print", "Handler action: print | delete | touch")
 	flag.Parse()
 
 	if *clnupPath == "" {
-		fmt.Println("Usage: clnup --file <.clnup> [--action=print|delete|touch]")
+		fmt.Println("Usage: clnup -file <.clnup> [-action=print|delete|touch]")
 		os.Exit(1)
 	}
 
