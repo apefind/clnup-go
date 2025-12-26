@@ -145,26 +145,26 @@ func touchHandler(path string, isDir bool) error {
 
 func main() {
 	clnupPath := flag.String("file", ".clnup", "Path to .clnup file (cleanup rules)")
-	action := flag.String("action", "print", "Handler action: print | delete | touch")
+	action := flag.String("action", "delete", "Handler action: print | delete | touch")
+	dryRun := flag.Bool("dry-run", false, "Dry run (equivalent to -action=print)")
 	flag.Parse()
-
 	if *clnupPath == "" {
 		fmt.Println("Usage: clnup -file <.clnup> [-action=print|delete|touch]")
 		os.Exit(1)
 	}
-
+	if *dryRun {
+		*action = "print"
+	}
 	data, err := os.ReadFile(*clnupPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to read .clnup file:", err)
 		os.Exit(1)
 	}
-
 	rules, err := ParseRules(string(data))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to parse .clnup:", err)
 		os.Exit(1)
 	}
-
 	var handler HandlerFunc
 	switch *action {
 	case "print":
@@ -177,7 +177,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Unknown action:", *action)
 		os.Exit(1)
 	}
-
 	root := filepath.Dir(*clnupPath)
 	if err := walk(root, rules, handler); err != nil {
 		fmt.Fprintln(os.Stderr, "Error walking directory:", err)
