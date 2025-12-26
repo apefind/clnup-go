@@ -1,0 +1,5 @@
+touch a.bck b.bak c.tmp e.swp ␍
+go run clnup.go -dry-run ␍
+go run clnup.go ␍
+git commit -a && git push && git deploy
+go install clnup.go
