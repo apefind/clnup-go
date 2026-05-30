@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !darwin
 
 package main
 
@@ -7,7 +7,8 @@ import (
 	"syscall"
 )
 
-// statExtra fills Unix-specific fields: uid, gid, atime, ctime.
+// statExtra fills Unix-specific fields on Linux (and other non-Darwin Unix).
+// Atim/Ctim are of type syscall.Timespec with a Nano() method.
 func statExtra(s *statInfo, fi fs.FileInfo) {
 	sys, ok := fi.Sys().(*syscall.Stat_t)
 	if !ok {
