@@ -571,11 +571,11 @@ func usage() {
 
 func main() {
 	clnupPath := flag.String("f", ".clnup", "Path to .clnup file")
-	action    := flag.String("action", "delete", "Handler action: print | delete | touch")
+	action := flag.String("action", "delete", "Handler action: print | delete | touch")
 	recursive := flag.Bool("r", false, "Recurse into subdirectories")
-	quiet     := flag.Bool("q", false, "Quiet mode")
-	verbose   := flag.Bool("v", false, "Verbose mode")
-	dryRun    := flag.Bool("d", false, "Dry run (equivalent to -action=print)")
+	quiet := flag.Bool("q", false, "Quiet mode")
+	verbose := flag.Bool("v", false, "Verbose mode")
+	dryRun := flag.Bool("d", false, "Dry run (equivalent to -action=print)")
 	flag.Usage = usage
 	flag.Parse()
 
