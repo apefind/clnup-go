@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-// --- Rule definitions ---
-
 type Action int
 
 const (
@@ -87,8 +85,6 @@ func globMatch(pattern, name string) bool {
 	return ok
 }
 
-// --- Generalized handler ---
-
 type HandlerFunc func(path string, isDir bool) error
 
 func walk(root string, rules []Rule, handler HandlerFunc) error {
@@ -96,7 +92,6 @@ func walk(root string, rules []Rule, handler HandlerFunc) error {
 	if err != nil {
 		return err
 	}
-
 	for _, e := range entries {
 		name := e.Name()
 		full := filepath.Join(root, name)
@@ -108,7 +103,6 @@ func walk(root string, rules []Rule, handler HandlerFunc) error {
 			}
 			continue
 		}
-
 		if isDir {
 			if err := walk(full, rules, handler); err != nil {
 				return err
@@ -118,19 +112,17 @@ func walk(root string, rules []Rule, handler HandlerFunc) error {
 	return nil
 }
 
-// --- Example handlers ---
-
-func printHandler(path string, isDir bool) error {
+func print(path string, isDir bool) error {
 	fmt.Println(path)
 	return nil
 }
 
-func deleteHandler(path string, isDir bool) error {
+func rm(path string, isDir bool) error {
 	fmt.Println("[delete]", path)
 	return os.RemoveAll(path)
 }
 
-func touchHandler(path string, isDir bool) error {
+func touch(path string, isDir bool) error {
 	if isDir {
 		return nil
 	}
@@ -140,8 +132,6 @@ func touchHandler(path string, isDir bool) error {
 	}
 	return f.Close()
 }
-
-// --- main ---
 
 func main() {
 	clnupPath := flag.String("file", ".clnup", "Path to .clnup file (cleanup rules)")
@@ -168,11 +158,11 @@ func main() {
 	var handler HandlerFunc
 	switch *action {
 	case "print":
-		handler = printHandler
+		handler = print
 	case "delete":
-		handler = deleteHandler
+		handler = rm
 	case "touch":
-		handler = touchHandler
+		handler = touch
 	default:
 		fmt.Fprintln(os.Stderr, "Unknown action:", *action)
 		os.Exit(1)
